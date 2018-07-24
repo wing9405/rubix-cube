@@ -1,4 +1,10 @@
 % [ [ r, r, r, r, r, r, r, r, r ], [ g, g, g, g, g, g, g, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, w, w, w, w, w, w, w ], [ y, y, y, y, y, y, y, y, y ], [ p, p, p, p, p, p, p, p, p ] ]
+% [ [ r, r, r, r, r, r, r, r, r ], [ y, g, g, y, g, g, y, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, p, w, w, p, w, w, p ], [ y, y, y, y, y, y, w, w, w ], [ g, g, g, p, p, p, p, p, p ] ]
+% [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]
+% list(A), solves(A, [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]).
+
+list([]).
+list([_ | T]) :- list(T).
 
 facet_done([X, X, X, X, X, X, X, X, X]).
 
@@ -9,6 +15,16 @@ cube_done([F, R, B, L, U, D]) :-
     facet_done(L),
     facet_done(U),
     facet_done(D).
+
+solves_i([ ], X, _, N) :- write('end: '), write(N), nl, cube_done(X).
+solves_i([ H | T ], X, Visited, N) :-
+    move(X, H, Y),
+    write(H), nl,
+    not(memberchk(Y, Visited)),
+    solves_i(T, Y, [Y | Visited], N+1).
+
+solves(A, X) :- solves_i(A, X, [ X ], 0).
+
 
 % Front
 move(
