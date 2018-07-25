@@ -1,7 +1,13 @@
 % [ [ r, r, r, r, r, r, r, r, r ], [ g, g, g, g, g, g, g, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, w, w, w, w, w, w, w ], [ y, y, y, y, y, y, y, y, y ], [ p, p, p, p, p, p, p, p, p ] ]
+
 % [ [ r, r, r, r, r, r, r, r, r ], [ y, g, g, y, g, g, y, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, p, w, w, p, w, w, p ], [ y, y, y, y, y, y, w, w, w ], [ g, g, g, p, p, p, p, p, p ] ]
+
 % [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]
-% solve([ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]).
+
+% list(A), solves(A, [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]).
+
+list([]).
+list([_ | T]) :- list(T).
 
 facet_done([X, X, X, X, X, X, X, X, X]).
 
@@ -13,33 +19,14 @@ cube_done([F, R, B, L, U, D]) :-
     facet_done(U),
     facet_done(D).
 
-list([]).
-list([_ | T]) :- list(T).
+solves_i([ ], X, _, Trace) :- write('end: '), write(Trace), nl, cube_done(X).
+solves_i([ H | T ], X, Visited, Trace) :-
+    move(X, H, Y),
+    %write(H), nl,
+    not(memberchk(Y, Visited)),
+    solves_i(T, Y, [Y | Visited], [H | Trace]).
 
-revert([], []).
-revert([H|T], Reverted) :- revert(T, TR), concat(TR, [H], Reverted).
-
-concat([], L, L).
-concat([H|T], L, [H|C]) :- concat(T, L, C).
-
-solve_cur_first([], Next) :- solve_cur_first(Next, []).
-solve_cur_first([ Conf/Trace | Tail], Next) :-
-    cube_done(Conf), !, write('trace :'), revert(Trace, TraceRev), write(TraceRev), nl
-    ;
-    write(Trace), nl,
-    expand_next(Tail, Conf, Trace, [f, f_, r, r_, b, b_, l, l_, u, u_, d, d_, m, m_, e, e_, s, s_], Next).
-
-expand_next(Tail, _, _, [], Next) :- solve_cur_first(Tail, Next).
-expand_next(Tail, Conf, Trace, [Act | Acts], Next) :-
-    move(Conf, Act, ConfNext),
-    (
-        (visited(ConfNext); rotate(ConfNext, _, R), visited(R)), !, expand_next(Tail, Conf, Trace, Acts, Next)
-        ;
-        assert(visited(ConfNext)),
-        expand_next(Tail, Conf, Trace, Acts, [ConfNext/[Act|Trace] | Next])
-    ).
-
-solve(X) :- assert(visited(X)), solve_cur_first([ X/[] ], []).
+solves(A, X) :- solves_i(A, X, [ X ], []).
 
 % Front
 move(
@@ -51,7 +38,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    f,
+    mF,
     [
         [F7,F4,F1,F8,F5,F2,F9,F6,F3],
         [U7,R2,R3,U8,R5,R6,U9,R8,R9],
@@ -71,7 +58,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    b,
+    mB,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,R2,U1,R4,R5,U2,R7,R8,U3],
@@ -91,7 +78,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    r,
+    mR,
     [
         [F1,F2,U3,F4,F5,U6,F7,F8,U9],
         [R3,R6,R9,R2,R5,R8,R1,R4,R7],
@@ -111,7 +98,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    l,
+    mL,
     [
         [U1,F2,F3,U4,F5,F6,U7,F8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -131,7 +118,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    u,
+    mU,
     [
         [R1,R2,R3,F4,F5,F6,F7,F8,F9],
         [B1,B2,B3,R4,R5,R6,R7,R8,R9],
@@ -151,7 +138,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    d,
+    mD,
     [
         [F1,F2,F3,F4,F5,F6,R7,R8,R9],
         [R1,R2,R3,R4,R5,R6,B7,B8,B9],
@@ -159,66 +146,6 @@ move(
         [L1,L2,L3,L4,L5,L6,F7,F8,F9],
         [U1,U2,U3,U4,U5,U6,U7,U8,U9],
         [D3,D6,D9,D2,D5,D8,D1,D4,D7]
-    ]).
-
-% Middle
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    m,
-    [
-        [F1,U2,F3,F4,U5,F6,F7,U8,F9],
-        [R1,R2,R3,R4,R5,R6,R7,R8,R9],
-        [B1,D8,B3,B4,D5,B6,B7,D2,B9],
-        [L1,L2,L3,L4,L5,L6,L7,L8,L9],
-        [U1,B8,U3,U4,B5,U6,U7,B2,U9],
-        [D1,F2,D3,D4,F5,D6,D7,F8,D9]
-    ]).
-
-% Stand rz.m.rz_
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    s,
-    [
-        [F1,F2,F3,F4,F5,F6,F7,F8,F9],
-        [R1,U4,R3,R4,U5,R6,R7,U6,R9],
-        [B1,B2,B3,B4,B5,B6,B7,B8,B9],
-        [L1,D4,L3,L4,D5,L6,L7,D6,L9],
-        [U1,U2,U3,L8,L5,L2,U7,U8,U9],
-        [D1,D2,D3,R8,R5,R2,D7,D8,D9]
-    ]).
-
-% Equator
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    e,
-    [
-        [F1,F2,F3,R4,R5,R6,F7,F8,F9],
-        [R1,R2,R3,B4,B5,B6,R7,R8,R9],
-        [B1,B2,B3,L4,L5,L6,B7,B8,B9],
-        [L1,L2,L3,F4,F5,F6,L7,L8,L9],
-        [U1,U2,U3,U4,U5,U6,U7,U8,U9],
-        [D1,D2,D3,D4,D5,D6,D7,D8,D9]
     ]).
 
 % Revert actions
@@ -231,7 +158,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    f_,
+    mf,
     [
         [F3,F6,F9,F2,F5,F8,F1,F4,F7],
         [D3,R2,R3,D2,R5,R6,D1,R8,R9],
@@ -249,7 +176,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    b_,
+    mb,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,R2,D9,R4,R5,D8,R7,R8,D7],
@@ -267,7 +194,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    r_,
+    mr,
     [
         [F1,F2,D3,F4,F5,D6,F7,F8,D9],
         [R7,R4,R1,R8,R5,R2,R9,R6,R3],
@@ -285,7 +212,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    l_,
+    ml,
     [
         [D1,F2,F3,D4,F5,F6,D7,F8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -303,7 +230,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    u_,
+    mu,
     [
         [L1,L2,L3,F4,F5,F6,F7,F8,F9],
         [F1,F2,F3,R4,R5,R6,R7,R8,R9],
@@ -321,7 +248,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    d_,
+    md,
     [
         [F1,F2,F3,F4,F5,F6,L7,L8,L9],
         [R1,R2,R3,R4,R5,R6,F7,F8,F9],
@@ -329,60 +256,6 @@ move(
         [L1,L2,L3,L4,L5,L6,B7,B8,B9],
         [U1,U2,U3,U4,U5,U6,U7,U8,U9],
         [D7,D4,D1,D8,D5,D2,D9,D6,D3]
-    ]).
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    m_,
-    [
-        [F1,D2,F3,F4,D5,F6,F7,D8,F9],
-        [R1,R2,R3,R4,R5,R6,R7,R8,R9],
-        [B1,U8,B3,B4,U5,B6,B7,U2,B9],
-        [L1,L2,L3,L4,L5,L6,L7,L8,L9],
-        [U1,F2,U3,U4,F5,U6,U7,F8,U9],
-        [D1,B8,D3,D4,B5,D6,D7,B2,D9]
-    ]).
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    s_,
-    [
-        [F1,F2,F3,F4,F5,F6,F7,F8,F9],
-        [R1,D6,R3,R4,D5,R6,R7,D4,R9],
-        [B1,B2,B3,B4,B5,B6,B7,B8,B9],
-        [L1,U6,L3,L4,U5,L6,L7,U4,L9],
-        [U1,U2,U3,R2,R5,R8,U7,U8,U9],
-        [D1,D2,D3,L2,L5,L8,D7,D8,D9]
-    ]).
-move(
-    [
-        [F1, F2, F3, F4, F5, F6, F7, F8, F9],
-        [R1, R2, R3, R4, R5, R6, R7, R8, R9],
-        [B1, B2, B3, B4, B5, B6, B7, B8, B9],
-        [L1, L2, L3, L4, L5, L6, L7, L8, L9],
-        [U1, U2, U3, U4, U5, U6, U7, U8, U9],
-        [D1, D2, D3, D4, D5, D6, D7, D8, D9]
-    ],
-    e_,
-    [
-        [F1,F2,F3,L4,L5,L6,F7,F8,F9],
-        [R1,R2,R3,F4,F5,F6,R7,R8,R9],
-        [B1,B2,B3,R4,R5,R6,B7,B8,B9],
-        [L1,L2,L3,B4,B5,B6,L7,L8,L9],
-        [U1,U2,U3,U4,U5,U6,U7,U8,U9],
-        [D1,D2,D3,D4,D5,D6,D7,D8,D9]
     ]).
 
 % Rotate-Z

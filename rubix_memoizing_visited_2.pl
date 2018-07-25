@@ -1,10 +1,43 @@
 % [ [ r, r, r, r, r, r, r, r, r ], [ g, g, g, g, g, g, g, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, w, w, w, w, w, w, w ], [ y, y, y, y, y, y, y, y, y ], [ p, p, p, p, p, p, p, p, p ] ]
-% [ [ r, r, r, r, r, r, r, r, r ], [ y, g, g, y, g, g, y, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, p, w, w, p, w, w, p ], [ y, y, y, y, y, y, w, w, w ], [ g, g, g, p, p, p, p, p, p ] ]
-% [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]
-% list(A), solves(A, [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]).
 
-list([]).
-list([_ | T]) :- list(T).
+% [ [ r, r, r, r, r, r, r, r, r ], [ y, g, g, y, g, g, y, g, g ], [ b, b, b, b, b, b, b, b, b ], [ w, w, p, w, w, p, w, w, p ], [ y, y, y, y, y, y, w, w, w ], [ g, g, g, p, p, p, p, p, p ] ]
+
+% [ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]
+
+% solve([ [y,o,r,r,r,g,r,r,r], [w,w,o,r,w,w,w,w,w], [r,y,y,y,y,y,y,y,y], [o,w,w,o,o,o,o,o,o], [g,g,g,g,g,r,g,g,g], [b,b,b,b,b,b,b,b,b] ]).
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% AVL-tree: almost balanced tree
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+avl_add(nil/0, X, avl(nil/0, X, nil/0)/1) :- !, true.
+avl_add(avl(_, X, _)/_, X, _) :- !, fail.
+avl_add(avl(L, Y, R)/_, X, NewTree) :-
+    X @< Y, !,
+    avl_add(L, X, avl(L1, Z, L2)/_),
+    avl_combine(L1, Z, L2, Y, R, NewTree).
+avl_add(avl(L, Y, R)/_, X, NewTree) :-
+    Y @< X, !,
+    avl_add(R, X, avl(R1, Z, R2)/_),
+    avl_combine(L, Y, R1, Z, R2, NewTree).
+
+avl_combine(T1/H1, A, avl(T21, B, T22)/H2, C, T3/H3, avl(avl(T1/H1, A, T21)/Ha, B, avl(T22, C, T3/H3)/Hc)/Hb) :-
+    H2 > H1, H2 > H3, !,
+    Ha is H1 + 1,
+    Hc is H3 + 1,
+    Hb is Ha + 1.
+avl_combine(T1/H1, A, T2/H2, C, T3/H3, avl(T1/H1, A, avl(T2/H2, C, T3/H3)/Hc)/Ha) :-
+    H1 >= H2, H1 >= H3, !,
+    max1(H2, H3, Hc),
+    max1(H1, Hc, Ha).
+avl_combine(T1/H1, A, T2/H2, C, T3/H3, avl(avl(T1/H1, A, T2/H2)/Ha, C, T3/H3)/Hc) :-
+    H3 >= H2, H3 >= H1, !,
+    max1(H1, H2, Ha),
+    max1(Ha, H3, Hc).
+max1(U, V, M) :-
+    U > V, !, M is U + 1
+    ;
+    M is V + 1.
 
 facet_done([X, X, X, X, X, X, X, X, X]).
 
@@ -16,14 +49,33 @@ cube_done([F, R, B, L, U, D]) :-
     facet_done(U),
     facet_done(D).
 
-solves_i([ ], X, _, Trace) :- write('end: '), write(Trace), nl, cube_done(X).
-solves_i([ H | T ], X, Visited, Trace) :-
-    move(X, H, Y),
-    %write(H), nl,
-    not(memberchk(Y, Visited)),
-    solves_i(T, Y, [Y | Visited], [H | Trace]).
+solve_cur_first([], Next, Visited) :- solve_cur_first(Next, [], Visited).
+solve_cur_first([ Conf/Trace | Tail], Next, Visited) :-
+    cube_done(Conf), !, write('trace :'), write(Trace), nl
+    ;
+    write(Trace), nl,
+    expand_next(Conf, Trace, [f, f_, r, r_, b, b_, l, l_, u, u_, d, d_], Tail, Next, Visited).
 
-solves(A, X) :- solves_i(A, X, [ X ], []).
+expand_next(_, _, [], Tail, Next, Visited) :- solve_cur_first(Tail, Next, Visited).
+expand_next(Conf, Trace, [Act | Acts], Tail, Next, Visited) :-
+    move(Conf, Act, ConfNext),
+    (
+        avl_add(Visited, ConfNext, Visited1),
+        %rotate(ConfNext, rz1, RZ1), avl_add(Visited1, RZ1, Visited2),
+        %rotate(ConfNext, rz2, RZ2), avl_add(Visited2, RZ2, Visited3),
+        %rotate(ConfNext, rz3, RZ3), avl_add(Visited3, RZ3, Visited4),
+        %rotate(ConfNext, rx1, RX1), avl_add(Visited4, RX1, Visited5),
+        %rotate(ConfNext, rx2, RX2), avl_add(Visited5, RX2, Visited6),
+        %rotate(ConfNext, rx3, RX3), avl_add(Visited6, RX3, Visited7),
+        %rotate(ConfNext, ry1, RY1), avl_add(Visited7, RY1, Visited8),
+        %rotate(ConfNext, ry2, RY2), avl_add(Visited8, RY2, Visited9),
+        %rotate(ConfNext, ry3, RY3), avl_add(Visited9, RY3, Visited10),
+        !, expand_next(Conf, Trace, Acts, Tail, [ConfNext/[Act|Trace] | Next], Visited1)
+        ;
+        expand_next(Conf, Trace, Acts, Tail, Next, Visited)
+    ).
+
+solve(X) :- solve_cur_first([ X/[] ], [], avl(nil/0, X, nil/0)/1).
 
 % Front
 move(
@@ -35,7 +87,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mF,
+    f,
     [
         [F7,F4,F1,F8,F5,F2,F9,F6,F3],
         [U7,R2,R3,U8,R5,R6,U9,R8,R9],
@@ -55,7 +107,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mB,
+    b,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,R2,U1,R4,R5,U2,R7,R8,U3],
@@ -75,7 +127,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mR,
+    r,
     [
         [F1,F2,U3,F4,F5,U6,F7,F8,U9],
         [R3,R6,R9,R2,R5,R8,R1,R4,R7],
@@ -95,7 +147,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mL,
+    l,
     [
         [U1,F2,F3,U4,F5,F6,U7,F8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -115,7 +167,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mU,
+    u,
     [
         [R1,R2,R3,F4,F5,F6,F7,F8,F9],
         [B1,B2,B3,R4,R5,R6,R7,R8,R9],
@@ -135,7 +187,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mD,
+    d,
     [
         [F1,F2,F3,F4,F5,F6,R7,R8,R9],
         [R1,R2,R3,R4,R5,R6,B7,B8,B9],
@@ -155,7 +207,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mM,
+    m,
     [
         [F1,U2,F3,F4,U5,F6,F7,U8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -175,7 +227,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mS,
+    s,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,U4,R3,R4,U5,R6,R7,U6,R9],
@@ -195,7 +247,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mE,
+    e,
     [
         [F1,F2,F3,R4,R5,R6,F7,F8,F9],
         [R1,R2,R3,B4,B5,B6,R7,R8,R9],
@@ -215,7 +267,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mf,
+    f_,
     [
         [F3,F6,F9,F2,F5,F8,F1,F4,F7],
         [D3,R2,R3,D2,R5,R6,D1,R8,R9],
@@ -233,7 +285,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mb,
+    b_,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,R2,D9,R4,R5,D8,R7,R8,D7],
@@ -251,7 +303,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mr,
+    r_,
     [
         [F1,F2,D3,F4,F5,D6,F7,F8,D9],
         [R7,R4,R1,R8,R5,R2,R9,R6,R3],
@@ -269,7 +321,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    ml,
+    l_,
     [
         [D1,F2,F3,D4,F5,F6,D7,F8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -287,7 +339,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mu,
+    u_,
     [
         [L1,L2,L3,F4,F5,F6,F7,F8,F9],
         [F1,F2,F3,R4,R5,R6,R7,R8,R9],
@@ -305,7 +357,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    md,
+    d_,
     [
         [F1,F2,F3,F4,F5,F6,L7,L8,L9],
         [R1,R2,R3,R4,R5,R6,F7,F8,F9],
@@ -323,7 +375,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    mm,
+    m_,
     [
         [F1,D2,F3,F4,D5,F6,F7,D8,F9],
         [R1,R2,R3,R4,R5,R6,R7,R8,R9],
@@ -341,7 +393,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    ms,
+    s_,
     [
         [F1,F2,F3,F4,F5,F6,F7,F8,F9],
         [R1,D6,R3,R4,D5,R6,R7,D4,R9],
@@ -359,7 +411,7 @@ move(
         [U1, U2, U3, U4, U5, U6, U7, U8, U9],
         [D1, D2, D3, D4, D5, D6, D7, D8, D9]
     ],
-    me,
+    e_,
     [
         [F1,F2,F3,L4,L5,L6,F7,F8,F9],
         [R1,R2,R3,F4,F5,F6,R7,R8,R9],
